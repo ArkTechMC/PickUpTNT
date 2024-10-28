@@ -1,0 +1,28 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+#issueTrackerURL = ""
+license = "All Right Reserved"
+
+[[mods]]
+modId = "pick_up_tnt"
+version = "${version}"
+displayName = "PickUpTNT"
+authors = "IAFEnvoy"
+description = '''
+Make TNT pickable and more fun.
+'''
+logoFile = "logo.jpg"
+
+[[dependencies.pick_up_tnt]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.pick_up_tnt]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,1.20.5)"
+ordering = "NONE"
+side = "BOTH"
