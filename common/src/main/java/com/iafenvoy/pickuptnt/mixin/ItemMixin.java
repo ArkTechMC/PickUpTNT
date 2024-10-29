@@ -7,12 +7,16 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.stat.Stats;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
+import net.minecraft.world.event.GameEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -35,7 +39,7 @@ public abstract class ItemMixin {
     }
 
     @Inject(method = "use", at = @At("HEAD"), cancellable = true)
-    private void handleTntThrow(World world, PlayerEntity user, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir) {
+    private void handleTntBehaviour(World world, PlayerEntity user, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir) {
         ItemStack stack = user.getStackInHand(hand);
         if (!stack.isOf(Items.TNT) || stack.isEmpty()) return;
         if (stack.getNbt() != null && stack.getNbt().contains(Constants.FUSE) && !world.isClient) {//Ender Pearl Logic
@@ -46,17 +50,33 @@ public abstract class ItemMixin {
             float g = -MathHelper.sin((pitch + 0.0F) * 0.017453292F);
             float h = MathHelper.cos(yaw * 0.017453292F) * MathHelper.cos(pitch * 0.017453292F);
             Random random = ((EntityAccessor) tnt).getRandom();
-            Vec3d vec3d1 = new Vec3d(f, g, h).normalize().add(random.nextTriangular(0.0, 0.0172275), random.nextTriangular(0.0, 0.0172275), random.nextTriangular(0.0, 0.0172275)).multiply(1.5F);
-            tnt.setYaw((float) (MathHelper.atan2(vec3d1.x, vec3d1.z) * 57.2957763671875));
-            tnt.setPitch((float) (MathHelper.atan2(vec3d1.y, vec3d1.horizontalLength()) * 57.2957763671875));
+            Vec3d vec = new Vec3d(f, g, h).normalize().add(random.nextTriangular(0.0, 0.0172275), random.nextTriangular(0.0, 0.0172275), random.nextTriangular(0.0, 0.0172275)).multiply(1.5F);
+            tnt.setYaw((float) (MathHelper.atan2(vec.x, vec.z) * 57.2957763671875));
+            tnt.setPitch((float) (MathHelper.atan2(vec.y, vec.horizontalLength()) * 57.2957763671875));
             tnt.prevYaw = tnt.getYaw();
             tnt.prevPitch = tnt.getPitch();
             Vec3d vec3d = user.getVelocity();
-            tnt.setVelocity(vec3d1.add(vec3d.x, user.isOnGround() ? 0.0 : vec3d.y, vec3d.z));
+            tnt.setVelocity(vec.add(vec3d.x, user.isOnGround() ? 0.0 : vec3d.y, vec3d.z));
             tnt.setFuse(stack.getNbt().getInt(Constants.FUSE));
             world.spawnEntity(tnt);
             stack.decrement(1);
             cir.setReturnValue(TypedActionResult.success(stack));
+        } else if (hand == Hand.MAIN_HAND) {
+            ItemStack offhand = user.getOffHandStack();
+            if (!offhand.isOf(Items.FLINT_AND_STEEL)) return;
+            offhand.damage(1, user, entity -> {
+            });
+            if (stack.getCount() == 1 || user.isSneaking())
+                stack.getOrCreateNbt().putInt(Constants.FUSE, Constants.DEFAULT_FUSE);
+            else {
+                stack.decrement(1);
+                ItemStack newStack = new ItemStack(Items.TNT);
+                newStack.getOrCreateNbt().putInt(Constants.FUSE, Constants.DEFAULT_FUSE);
+                user.giveItemStack(newStack);
+            }
+            user.playSound(SoundEvents.ENTITY_TNT_PRIMED, SoundCategory.BLOCKS, 1, 1);
+            world.emitGameEvent(user, GameEvent.PRIME_FUSE, user.getPos());
+            user.incrementStat(Stats.USED.getOrCreateStat(offhand.getItem()));
         }
     }
 }
