@@ -2,12 +2,12 @@ package com.iafenvoy.pickuptnt.mixin;
 
 import com.iafenvoy.pickuptnt.Constants;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.TntEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.stat.Stats;
 import net.minecraft.util.Hand;
@@ -28,13 +28,13 @@ public abstract class ItemMixin {
     @Inject(method = "inventoryTick", at = @At("HEAD"))
     private void onTickTnt(ItemStack stack, World world, Entity entity, int slot, boolean selected, CallbackInfo ci) {
         if (!stack.isOf(Items.TNT) || stack.isEmpty()) return;
-        if (stack.getNbt() != null && stack.getNbt().contains(Constants.FUSE)) {
-            int fuse = stack.getNbt().getInt(Constants.FUSE);
+        if (stack.contains(Constants.FUSE_TYPE)) {
+            int fuse = stack.get(Constants.FUSE_TYPE);
             if (fuse == 0) {
                 if (!world.isClient)
                     world.createExplosion(null, entity.getX(), entity.getBodyY(0.0625), entity.getZ(), 4.0F * stack.getCount(), World.ExplosionSourceType.TNT);
                 stack.setCount(0);
-            } else stack.getNbt().putInt(Constants.FUSE, fuse - 1);
+            } else stack.set(Constants.FUSE_TYPE, fuse - 1);
         }
     }
 
@@ -42,7 +42,7 @@ public abstract class ItemMixin {
     private void handleTntBehaviour(World world, PlayerEntity user, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir) {
         ItemStack stack = user.getStackInHand(hand);
         if (!stack.isOf(Items.TNT) || stack.isEmpty()) return;
-        if (stack.getNbt() != null && stack.getNbt().contains(Constants.FUSE) && !world.isClient) {//Ender Pearl Logic
+        if (stack.contains(Constants.FUSE_TYPE) && !world.isClient) {//Ender Pearl Logic
             TntEntity tnt = new TntEntity(world, user.getX(), user.getBodyY(0.0625), user.getZ(), user);
             float pitch = user.getPitch();
             float yaw = user.getYaw();
@@ -57,24 +57,23 @@ public abstract class ItemMixin {
             tnt.prevPitch = tnt.getPitch();
             Vec3d vec3d = user.getVelocity();
             tnt.setVelocity(vec.add(vec3d.x, user.isOnGround() ? 0.0 : vec3d.y, vec3d.z));
-            tnt.setFuse(stack.getNbt().getInt(Constants.FUSE));
+            tnt.setFuse(stack.get(Constants.FUSE_TYPE));
             world.spawnEntity(tnt);
             stack.decrement(1);
             cir.setReturnValue(TypedActionResult.success(stack));
         } else if (hand == Hand.MAIN_HAND) {
             ItemStack offhand = user.getOffHandStack();
             if (!offhand.isOf(Items.FLINT_AND_STEEL)) return;
-            offhand.damage(1, user, entity -> {
-            });
+            offhand.damage(1, user, EquipmentSlot.OFFHAND);
             if (stack.getCount() == 1 || user.isSneaking())
-                stack.getOrCreateNbt().putInt(Constants.FUSE, Constants.DEFAULT_FUSE);
+                stack.set(Constants.FUSE_TYPE, Constants.DEFAULT_FUSE);
             else {
                 stack.decrement(1);
                 ItemStack newStack = new ItemStack(Items.TNT);
-                newStack.getOrCreateNbt().putInt(Constants.FUSE, Constants.DEFAULT_FUSE);
+                newStack.set(Constants.FUSE_TYPE, Constants.DEFAULT_FUSE);
                 user.giveItemStack(newStack);
             }
-            user.playSound(SoundEvents.ENTITY_TNT_PRIMED, SoundCategory.BLOCKS, 1, 1);
+            user.playSound(SoundEvents.ENTITY_TNT_PRIMED, 1, 1);
             world.emitGameEvent(user, GameEvent.PRIME_FUSE, user.getPos());
             user.incrementStat(Stats.USED.getOrCreateStat(offhand.getItem()));
         }
