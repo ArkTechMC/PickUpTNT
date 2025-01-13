@@ -10,8 +10,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.stat.Stats;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
@@ -39,7 +39,7 @@ public abstract class ItemMixin {
     }
 
     @Inject(method = "use", at = @At("HEAD"), cancellable = true)
-    private void handleTntBehaviour(World world, PlayerEntity user, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir) {
+    private void handleTntBehaviour(World world, PlayerEntity user, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
         ItemStack stack = user.getStackInHand(hand);
         if (!stack.isOf(Items.TNT) || stack.isEmpty()) return;
         if (stack.contains(Constants.FUSE_TYPE) && !world.isClient) {//Ender Pearl Logic
@@ -60,7 +60,7 @@ public abstract class ItemMixin {
             tnt.setFuse(stack.get(Constants.FUSE_TYPE));
             world.spawnEntity(tnt);
             stack.decrement(1);
-            cir.setReturnValue(TypedActionResult.success(stack));
+            cir.setReturnValue(ActionResult.SUCCESS.withNewHandStack(stack));
         } else if (hand == Hand.MAIN_HAND) {
             ItemStack offhand = user.getOffHandStack();
             if (!offhand.isOf(Items.FLINT_AND_STEEL)) return;

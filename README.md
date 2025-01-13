@@ -10,4 +10,4 @@ Think TNT can only blow up things? This Mod make TNT more fun.
 
 ## Known bugs
 
-NeoForge version cannot render lit TNT in inventory correctly.
+For 1.21.2+ TNT lit overlay cannot render.
