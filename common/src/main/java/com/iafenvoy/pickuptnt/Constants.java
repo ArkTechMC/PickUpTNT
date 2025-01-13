@@ -1,9 +1,9 @@
 package com.iafenvoy.pickuptnt;
 
-import net.minecraft.component.DataComponentType;
+import net.minecraft.component.ComponentType;
 
 public class Constants {
     public static final String FUSE = "fuse";
     public static final int DEFAULT_FUSE = 80;
-    public static DataComponentType<Integer> FUSE_TYPE = null;
+    public static ComponentType<Integer> FUSE_TYPE = null;
 }
